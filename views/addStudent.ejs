@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>学生信息</title>
+    <!-- BOOTSTRAP CORE STYLE  -->
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <!-- FONT AWESOME ICONS  -->
+    <link href="/css/font-awesome.css" rel="stylesheet">
+    <!-- CUSTOM STYLE  -->
+    <link href="/css/style.css" rel="stylesheet">
+
+</head>
+
+<body>
+    <!---:不转义输出，不会转移html标签转义输出,会把HTML标签转义为&gt; -->
+
+    <%- include('./header.ejs',{idx:'addStudent'}) %>
+
+
+    <div class="content-wrapper">
+        <div class="container">
+            <form action="" class="form-horizontal" style="width:50%;">
+                <div class="form-group">
+                    <label for="firstname" class="col-sm-2 control-label">名字：</label>
+                    <div class="col-sm-10">
+                        <input type="text" class=" " maxlength="5" form-control" id="firstname" placeholder="请输入名字">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="" class="col-sm-2 control-label">性别：</label>
+                    <div class="col-sm-10" style="margin-top: 9px;">
+                        <input type="radio" name='sex' value='男' id='nan' checked> 
+                        <label for="nan">男</label>
+                        <input type="radio" name='sex' value='女' id='nv'>
+                        <label for="nv">女</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="number" class="col-sm-2 control-label">年龄：</label>
+                    <div class="col-sm-10">
+                        <input type="number" class="form-control" id="number" min="5" max="50" placeholder="请输入年龄">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-2 "> </div>
+                    <input type="button" class="btn btn-default save" value="保存">
+                    <input type="button" class="btn btn-default" value="返回" onclick="history.go(-1)">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <%- include('./footer.ejs') %>
+
+
+    <script src="/js/jquery-1.11.1.js"></script>
+    <!-- BOOTSTRAP SCRIPTS  -->
+    <script src="/js/bootstrap.js"></script>
+
+</body>
+<script>
+    $(function(){
+        $('.save').on('click',function(){
+            let _name = $('#firstname').val();
+            let _age = $('input[type=number]').val();
+            let _sex = $('input[type=radio]:checked').val();
+            if(_age < 5 || _age > 50 ){
+                alert('请输入规范年龄');
+                return;
+            }
+            console.log(_name,_age,_sex);
+            
+            $.ajax({
+                url:'/student/addStudent',
+                type:'put',
+                data:{
+                    name:_name ,
+                    age:_age,
+                    sex:_sex
+                },
+                success:function(res){
+                    // console.log(res);
+                    if( res.error ){
+                        alert(res.msg);
+                        window.location = '/';
+                    }else{
+                        alert(res.msg);
+                    }
+                }
+            });
+        })
+    })
+</script>
+</html>

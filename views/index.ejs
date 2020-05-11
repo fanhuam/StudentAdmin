@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!--[if IE]>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <![endif]-->
+    <title>学生信息</title>
+    <!-- BOOTSTRAP CORE STYLE  -->
+    <link href="/css/bootstrap.css" rel="stylesheet">
+    <!-- FONT AWESOME ICONS  -->
+    <link href="/css/font-awesome.css" rel="stylesheet">
+    <!-- CUSTOM STYLE  -->
+    <link href="/css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/pager.css">
+</head>
+
+<body>
+    <!---:不转义输出，不会转移html标签转义输出,会把HTML标签转义为&gt; -->
+
+    <%- include('./header.ejs',{idx:'index'}) %>
+
+
+    <div class="content-wrapper">
+        <div class="container">
+
+            <div class="row pull-right" style='width:40%;'>
+                <div class="input-group">
+                    <input type="search" list="dataList" class="form-control search" placeholder="请输入学生姓名">
+                    <datalist id="dataList"> </datalist>
+                    <span class="input-group-addon" id="search" style='cursor:pointer;user-select:none;'>搜索</span>
+                    <span class="input-group-addon" id="exportExcel"
+                        style='cursor:pointer;user-select:none;color:#fff;background-color: green;'>导出为Excel</span>
+                </div>
+            </div>
+
+            <table class="table">
+                <caption>学院列表</caption>
+                <thead>
+                    <tr>
+                        <th>学号</th>
+                        <th>名字</th>
+                        <th>性别</th>
+                        <th>年龄</th>
+                        <th>【操作】</th>
+                    </tr>
+                </thead>
+                <tbody class="studentList">
+
+                </tbody>
+            </table>
+            <!-- 分页 -->
+            <div id="wrap">
+
+            </div>
+        </div>
+    </div>
+
+    <%- include('./footer.ejs') %>
+
+
+    <script src="/js/jquery-1.11.1.js"></script>
+    <!-- BOOTSTRAP SCRIPTS  -->
+    <script src="/js/bootstrap.js"></script>
+    <script src="/js/pagination.js"></script>
+    <script>
+        $(function () {
+            new StudentList();
+        })
+
+        function StudentList() {
+            this.page = 1;
+            this.searchData = {};//通过 模糊搜索检索的数据
+
+            this.init();
+
+            this.bindEvent();
+        }
+
+        //请求学生数据渲染
+        StudentList.prototype.init = function () {
+            var _this = this;
+
+            $.get(
+                '/student/msg',
+                { page: this.page },
+                function (res) {
+                    // console.log(res);
+                    _this.renderDom(res);
+                }
+            );
+        }
+
+        //渲染dom
+        StudentList.prototype.renderDom = function (data) {
+            var _this = this;
+
+            //如果有数据
+            if (data.results.length > 0) {
+                //渲染dom
+                $('.studentList').empty();
+                $.each(data.results, function (idx, item) {
+                    var tr = $('<tr></tr>');
+                    tr.html(`
+                    <td> ${item.xueid} </td>
+                    <td contenteditable="true"> ${item.name} </td>
+                    <td contenteditable="true"> ${item.sex} </td>
+                    <td contenteditable="true"> ${item.age} </td>
+                    <td>
+                        <input type="button" value='删除' class='btn btn-warning del' data-sid='${item.xueid}'> 
+                        <input type="button" value='修改' class='btn btn-info change' data-sid='${item.xueid}'> 
+                    </td>
+                `);
+                    tr.appendTo($('.studentList'));
+                })
+
+                //渲染分页
+                //渲染分页:
+                pagination.init({
+                    wrapid: 'wrap', //页 面显示分页器ID
+                    total: data.count, //总数据条数
+                    pagesize: 4,//每页3条数据
+                    currentPage: _this.page, //当前页
+                    onPagechange: function (n) {
+                        //页面改变时触发，参数n为改变 后的当前页数
+                        console.log(n);
+                        _this.page = n;
+                        _this.init();
+                    }
+                })
+            }else{
+                //本页数据为0 
+                if(_this.page > 1){
+                    _this.page -= 1;
+                    _this.init();
+                }else{
+                    $('#wrap').empty();
+                    $('.studentList').html('暂无数据');
+                }
+            }
+
+
+
+
+        }
+
+        StudentList.prototype.bindEvent = function () {
+            var _this = this;
+            //模糊搜索学生
+            $('.search').on('input', this.searchStudent.bind(this));
+
+            //跳转新窗口渲染新的数据
+            $('#search').on('click', function () {
+                // console.log(123);
+                _this.searchData.results && _this.renderDom(_this.searchData);
+            });
+            $('.search').on('keydown', function (ev) {
+                if (ev.keyCode == 13) {
+                    // console.log('回车');
+                    _this.searchData.results && _this.renderDom(_this.searchData);
+                }
+            })
+
+
+            //修改学生信息
+            $('.studentList').delegate('.change', 'click', function () {
+                var xueid = $(this).attr('data-sid');
+                var childrens = $(this).parent().parent().children();
+
+                var name = childrens.eq(1).text();
+                var sex = childrens.eq(2).text();
+                var age = parseInt(childrens.eq(3).text());
+                // console.log(xueid, name, sex,age );
+
+                // if( sex != '男' && sex != '女' ){
+                //     alert('请输入正确的性别');
+                //     return;
+                // }
+                if (isNaN(age)) {
+                    alert('请输入数字年龄')
+                    return;
+                }
+
+                $.post(
+                    '/student/' + xueid,
+                    { name, sex, age },
+                    function (res) {
+                        // console.log(res);
+                        if (res.error == 1) {
+                            alert('修改成功');
+                        } else {
+                            alert('修改失败');
+                        }
+                    }
+                );
+
+            })
+
+
+            //删除学生
+            $('.studentList').delegate('.del', 'click', function () {
+                var _confirm = confirm('确认删除？');
+                if( !_confirm )  return;
+                var xueid = $(this).attr('data-sid'); 
+                $.ajax({
+                    url: '/student/' + xueid,
+                    type: 'delete',
+                    success(res) {
+                        // console.log(res);
+                        if (res.error) {
+                            alert(res.msg);
+                            _this.init();
+                        } else {
+                            alert(res.msg);
+                        }
+                    }
+                })
+            })
+
+
+
+
+            //导出为excel表  格式xlsx
+            $('#exportExcel').on('click', function () {
+                var _confirm = confirm('确定导出所有学生数据');
+                if (!_confirm) return;
+                console.log(123);
+
+                $.get('/exportExcel', function (res) {
+                    console.log(res);
+                    if (res.error) {
+                        window.location = window.location + 'excel/' + res.msg;
+                    }
+                });
+            })
+        }
+
+        //搜索
+        StudentList.prototype.searchStudent = function () {
+            var _this = this;
+            var val = $('.search').val();
+            if (!val) {
+                _this.searchData = {};
+                this.init();
+                return;
+            }
+            $.get(
+                '/student/search',
+                {
+                    search: val
+                },
+                function (res) {
+                    // console.log(res);
+                    $('#dataList').empty();
+
+                    if (res.data.length > 0) {
+                        // 设置全局搜索数据格式
+                        _this.searchData = {
+                            count: res.data.length,
+                            num: 1,
+                            results: res.data
+                        }
+
+                        $.each(res.data, function (idx, item) {
+                            var option = $('<option></option>');
+                            option.val(item.name);
+                            option.text(item.name);
+                            option.appendTo($('#dataList'));
+                        });
+                    }
+                }
+            )
+        }
+
+    </script>
+</body>
+
+</html>
